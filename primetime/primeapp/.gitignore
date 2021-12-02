@@ -1,0 +1,5 @@
+obj/
+app
+prime.c
+prime.h
+primeaccess.h
