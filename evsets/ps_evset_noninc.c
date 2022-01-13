@@ -249,16 +249,6 @@ retry_after_early_eviction:
 	}
 #endif
 
-	// if (is_cd)
-	// 	if(!ps_evset_test(evset, victim, threshold_l2, 10, EVTEST_ALLPASS, is_cd)) {
-	// 		if (++counter_contdir_test < 2*CD_WAYS) {
-	// 			list_len = len_requested;
-	// 			len = len_requested + 1;
-	// 			goto extend;
-	// 		}
-	// 		return PS_FAIL_CONTDIR_EVICTION;
-	// 	}
-
 	return PS_SUCCESS;
 }
 

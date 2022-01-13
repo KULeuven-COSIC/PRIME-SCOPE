@@ -46,10 +46,10 @@ int configure_thresholds(
 ////////////////////////////////////////////////////////////////////////////////
 // The attacker()
 
-// First, a helper thread is needed for both eviction set construction and 
-// threshold finding, hence eviction memory is declared globally, so that both 
-// threads can access that memory region. Also, for Prime+Scope on the 
-// non-inclusive caches, it is better to have two eviction sets, and make an 
+// First, a helper thread is needed for both eviction set construction and
+// threshold finding, hence eviction memory is declared globally, so that both
+// threads can access that memory region. Also, for Prime+Scope on the
+// non-inclusive caches, it is better to have two eviction sets, and make an
 // alternating use of them for consecutive prime's.
 uint64_t *evict_memA, *evict_memB;
 void attacker_helper();
@@ -162,7 +162,7 @@ repeat_evset:
 
   //////////////////////////////////////////////////////////////////////////////
   // Only need helper for EV construction
-  KILL_HELPER(); 
+  KILL_HELPER();
 
   //////////////////////////////////////////////////////////////////////////////
   // Prepare the Scope Line
@@ -208,8 +208,8 @@ repeat_evset:
     // /////////////////////////////////////////////////////////////////////////
 
     PRIME(evsetListB);
-    TIME_READ_ACCESS(scope_addrB);    // SCOPE 
-    TIME_READ_ACCESS(scope_addrB);    // SCOPE 
+    TIME_READ_ACCESS(scope_addrB);    // SCOPE
+    TIME_READ_ACCESS(scope_addrB);    // SCOPE
     VICTIM_READ_ACCESS(target_addr);  // Cross-core access to monitored set
     TIME_READ_ACCESS(scope_addrB);    // SCOPE detects access
 
@@ -291,22 +291,25 @@ void test_eviction_set_creation() {
     ////////////////////////////////////////////////////////////////////////////
     // Eviction Set Construction
 
+    #define CONTENTION_TARGET CONTENTION_CD // or CONTENTION_LLC
+
     Elem  *evsetList;
 
     attempt_counter = 0;
 
     clock_gettime(CLOCK_MONOTONIC, &tstart);
 repeat_evset:
-    if (PS_SUCCESS != ps_evset_llc( &evsetList,
-                                    (char*)target_addr,
-                                    LLC_WAYS,
-                                    evict_memA,
-                                    HUGE_PAGES_AVAILABLE,
-                                    CONTENTION_LLC,
-                                    thrLLC,
-                                    thrL2,
-                                    synchronization,
-                                    synchronization_params)) {
+    if (PS_SUCCESS != ps_evset_llc(
+                        &evsetList,
+                        (char*)target_addr,
+                        (CONTENTION_TARGET==CONTENTION_CD) ? CD_WAYS : LLC_WAYS,
+                        evict_memA,
+                        HUGE_PAGES_AVAILABLE,
+                        CONTENTION_TARGET,
+                        thrLLC,
+                        thrL2,
+                        synchronization,
+                        synchronization_params)) {
       if (++attempt_counter < MAX_EVSET_CONST_RETRY)
         goto repeat_evset;
     }
@@ -321,14 +324,14 @@ repeat_evset:
 
         if (ps_evset_test(&evsetList,
                         (char*)target_addr,
-                        thrLLC,
+                        (CONTENTION_TARGET==CONTENTION_CD) ? thrL2 : thrLLC,
                         100,
                         EVTEST_MEDIAN,
-                        CONTENTION_LLC)) {
+                        CONTENTION_TARGET)) {
           printf(GREEN"\t  Eviction Success\n"NC);
         }
         else
-          printf(GREEN"\t  Eviction Failed\n"NC);
+          printf(RED"\t  Eviction Failed\n"NC);
     }
     else
       printf(RED"\tConstruction Failed. With %d retries\n"NC,
@@ -422,14 +425,14 @@ int configure_thresholds(
   printf(ORANGE"\n\tWARNING: for this configuration (non-inclusive Intel LLC + small pages), the LLC threshold has been set statically instead of dynamically. \n");
   printf(NC"\t-> if the PoC does not work (e.g., EV construction fails) consider tweaking this threshold.\n\n");
 #endif
-  
+
 
   printf("\tL1  : %u\n", tL1   );
   printf("\tL2  : %u\n", tL2   );
   printf("\tLLC : %u\n", tLLC  );
   printf("\tRAM : %u\n", tRAM  );
 
-  *thrL1  = (tL1  + tL2 ) / 2; 
+  *thrL1  = (tL1  + tL2 ) / 2;
   *thrL2  = (tL2  + tLLC) / 2;
   *thrLLC = (tLLC + tRAM) / 2;
 
